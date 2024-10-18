@@ -2917,17 +2917,17 @@ void init_CUDA_device( int* gpu_id, int myID, int numprocs,
     }
     
   
-  
+    // [Would crash if all GPUs are detected connected to one monitor.]
     //!!MC-GPU_v1.4!! Skip GPUs connected to a monitor, if more GPUs available:
-    checkCudaErrors(cudaGetDeviceProperties(&deviceProp, *gpu_id));    
-    if (0!=deviceProp.kernelExecTimeoutEnabled)
-    {
-      if((*gpu_id)<(deviceCount-1))
-      {
-        printf("\n       ==> CUDA: GPU #%d is connected to a display and the CUDA driver would limit the kernel run time. Skipping this GPU!!\n", *gpu_id);
-        *gpu_id = (*gpu_id)+1;
-      }
-    }
+    // checkCudaErrors(cudaGetDeviceProperties(&deviceProp, *gpu_id));    
+    // if (0!=deviceProp.kernelExecTimeoutEnabled)
+    // {
+    //   if((*gpu_id)<(deviceCount-1))
+    //   {
+    //     printf("\n       ==> CUDA: GPU #%d is connected to a display and the CUDA driver would limit the kernel run time. Skipping this GPU!!\n", *gpu_id);
+    //     *gpu_id = (*gpu_id)+1;
+    //   }
+    // }
   
        
     // Send the processor and GPU id to the following thread, unless we are the last thread:
