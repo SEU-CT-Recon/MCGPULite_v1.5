@@ -18,7 +18,7 @@ Compared to [MCGPULite](https://github.com/SEU-CT-Recon/MCGPULite), MCGPULite_v1
 
 Compared to [VICTRE_MCGPU](https://github.com/DIDSR/VICTRE_MCGPU/), MCGPULite_v1.5 has undergone the following reductions and modifications:
 
-- **Makefile Rewrite**: The [Makefile](https://github.com/SEU-CT-Recon/MCGPULite_v1.5/Makefile) has been rewritten to support standalone zlib, CUDA, nvcc, and openmpi, eliminating the need for `sudo apt-get`. It has also been synchronized with [MCGPULite](https://github.com/SEU-CT-Recon/MCGPULite).
+- **Makefile Rewrite**: The [Makefile](https://github.com/SEU-CT-Recon/MCGPULite_v1.5/blob/main/Makefile) has been rewritten to support standalone zlib, CUDA, nvcc, and openmpi, eliminating the need for `sudo apt-get`. It has also been synchronized with [MCGPULite](https://github.com/SEU-CT-Recon/MCGPULite).
 
   - Have CUDA installed correctly.
 
@@ -67,7 +67,7 @@ Compared to [VICTRE_MCGPU](https://github.com/DIDSR/VICTRE_MCGPU/), MCGPULite_v1
     # source ~/.bashrc
     ```
 
-- **Focal Spot Model Removal**: The focal spot model has been removed, and the [MC-GPULite_v1.5_sample.in](https://github.com/SEU-CT-Recon/MCGPULite_v1.5/MC-GPULite_v1.5_sample.in) input file no longer requires parameters related to the focal spot:
+- **Focal Spot Model Removal**: The focal spot model has been removed, and the [MC-GPULite_v1.5_sample.in](https://github.com/SEU-CT-Recon/MCGPULite_v1.5/blob/main/MC-GPULite_v1.5_sample.in) input file no longer requires parameters related to the focal spot:
 
   ```diff
   #[SECTION SOURCE v.2016-12-02]
