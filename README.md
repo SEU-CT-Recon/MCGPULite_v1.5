@@ -108,6 +108,27 @@ Compared to [VICTRE_MCGPU](https://github.com/DIDSR/VICTRE_MCGPU/), MCGPULite_v1
   #[SECTION VOXELIZED GEOMETRY FILE v.2017-07-26]
   ```
 
+- **Phantom File Format Support Removal**: The phantom file currently **only supports** the header format (**ASCII** format) specified in the documentation, and the binary tree storage format has been temporarily disabled.
+
+  ```diff
+  #[SECTION VOXELIZED GEOMETRY FILE v.2017-07-26]
+  ...
+  - 1280   1950   940              # NUMBER OF VOXELS: INPUT A 0 TO READ ASCII FORMAT WITH HEADER SECTION, RAW VOXELS WILL BE READ OTHERWISE
+  - 0.0050 0.0050 0.0050           # VOXEL SIZES [cm]
+  - 1 1 1                          # SIZE OF LOW RESOLUTION VOXELS THAT WILL BE DESCRIBED BY A BINARY TREE, GIVEN AS POWERS OF TWO (eg, 2 2 3 = 2^2x2^2x2^3 = 128 input voxels per low res voxel; 0 0 0 disables tree)
+  ```
+  
+  In MCGPU_v1.5b, material densities were fixed to a certain value, which meant that variations in density within the same material in the vox file would become invalid. Therefore, MCGPULite_v1.5 removed this restriction. However, this change appears to affect the functionality of the binary tree storage, so the binary tree storage feature has been temporarily disabled.
+  
+- **Material File Customization Removal**: Material files no longer allow users to customize densities and material IDs, as it was found to be incompatible with ASCII format voxel files.
+
+  ```diff
+  #[SECTION MATERIAL FILE LIST v.2020-03-03]   
+  -#  -- Input material file names first, then material density after keyword 'density=' (optional if using nominal density), then comma-separated list of voxel ID numbers after keyword 'voxelID=' (empty if material not used).
+  - air__5-120keV.mcgpu                  density=0.0012   voxelId=0        
+  adipose__5-120keV.mcgpu    
+  ```
+  
 - **Output File Content**: The output files include three slices: total signal, primary signal, and scatter signal, rather than just the total and primary signals, aligning with [MCGPULite](https://github.com/SEU-CT-Recon/MCGPULite).
 
   
