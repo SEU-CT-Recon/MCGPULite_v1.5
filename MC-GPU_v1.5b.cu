@@ -452,10 +452,12 @@ int main(int argc, char **argv)
   struct compton_struct  compton_table;    // Structure containing Compton sampling data (to be copied to CONSTANT memory)
   struct rayleigh_struct rayleigh_table;   // Structure containing Rayleigh sampling data (to be copied to CONSTANT memory)
   
-      //   float2 *voxel_mat_dens = NULL;  //!!FixedDensity_DBT!! Density is now fixed for each material, not adapted for each voxel.
-  int *voxel_mat_dens = NULL;              //!!bitree!! v1.5 --> using an integer value to be able to store both the material number (positive) or pointers to the binary tree branches (negative)
-  long long int voxel_mat_dens_bytes = 0;  // Size (in bytes) of the voxels array (using unsigned int to allocate up to 4.2GBytes)
+  float2 *voxel_mat_dens = NULL;  //!!FixedDensity_DBT!! Density is now fixed for each material, not adapted for each voxel.
+  // int *voxel_mat_dens = NULL;              //!!bitree!! v1.5 --> using an integer value to be able to store both the material number (positive) or pointers to the binary tree branches (negative)
+  // long long int voxel_mat_dens_bytes = 0;  // Size (in bytes) of the voxels array (using unsigned int to allocate up to 4.2GBytes)
+  unsigned int voxel_mat_dens_bytes = 0;   // Size (in bytes) of the voxels array (using unsigned int to allocate up to 4.2GBytes)
   
+
   char *bitree = NULL;                     // Array storing the binary tree structures for each non-uniform low resolution voxel
   unsigned int bitree_bytes = 0;           // Size (in bytes) of the bitree array
   int *voxel_geometry_LowRes = NULL;       // Array to temporary store the low resolution version of the geometry when the binary tree is created
@@ -639,18 +641,26 @@ int main(int argc, char **argv)
     else
     {
       // -- Read binary RAW format geometry: geometric parameters given in input file              !!DBTv1.4!! 
-      load_voxels_binary_VICTRE(myID, file_name_voxels, density_max, &voxel_data, &voxel_mat_dens, &voxel_mat_dens_bytes, &dose_ROI_x_max, &dose_ROI_y_max, &dose_ROI_z_max);   //!!DBT!!    // !!DBTv1.4!!
+      // load_voxels_binary_VICTRE(myID, file_name_voxels, density_max, &voxel_data, &voxel_mat_dens, &voxel_mat_dens_bytes, &dose_ROI_x_max, &dose_ROI_y_max, &dose_ROI_z_max);   //!!DBT!!    // !!DBTv1.4!!
+      MAIN_THREAD printf("\n\n   !!ERROR!! Sorry, load_voxels_binary_VICTRE function is forbidden for now.\n\n");
+      exit(-1);
     }
 
     // -- Pre-compute the total mass of each material present in the voxel phantom (to be used in "report_materials_dose"):
+    // double voxel_volume = 1.0 / ( ((double)voxel_data.inv_voxel_size.x) * ((double)voxel_data.inv_voxel_size.y) * ((double)voxel_data.inv_voxel_size.z) );
+    // for(kk=0; kk<MAX_MATERIALS; kk++)
+    //   mass_materials[kk] = 0.0;
+    // long long int llk;
+    // for(llk=0; llk<((long long int)voxel_data.num_voxels.x*(long long int)voxel_data.num_voxels.y*(long long int)voxel_data.num_voxels.z); llk++)  // For each voxel in the geometry
+    // {
+    //   mass_materials[((int)voxel_mat_dens[llk])] += ((double)density_LUT[((int)voxel_mat_dens[llk])])*voxel_volume;   // Add material mass = density_LUT*volume (first material==0)
+    // }
     double voxel_volume = 1.0 / ( ((double)voxel_data.inv_voxel_size.x) * ((double)voxel_data.inv_voxel_size.y) * ((double)voxel_data.inv_voxel_size.z) );
+    double mass_materials[MAX_MATERIALS];
     for(kk=0; kk<MAX_MATERIALS; kk++)
       mass_materials[kk] = 0.0;
-    long long int llk;
-    for(llk=0; llk<((long long int)voxel_data.num_voxels.x*(long long int)voxel_data.num_voxels.y*(long long int)voxel_data.num_voxels.z); llk++)  // For each voxel in the geometry
-    {
-      mass_materials[((int)voxel_mat_dens[llk])] += ((double)density_LUT[((int)voxel_mat_dens[llk])])*voxel_volume;   // Add material mass = density_LUT*volume (first material==0)
-    }
+    for(kk=0; kk<(voxel_data.num_voxels.x*voxel_data.num_voxels.y*voxel_data.num_voxels.z); kk++)  // For each voxel in the geometry
+      mass_materials[((int)voxel_mat_dens[kk].x)-1] += ((double)voxel_mat_dens[kk].y)*voxel_volume;        // Add material mass = density*volume
     
     
     // ** Create the low resolution version of the phantom and the binary tree structures, if requested in the input file and dose dep tally disabled:   //!!bitree!! v1.5b
@@ -665,16 +675,16 @@ int main(int argc, char **argv)
       MAIN_THREAD printf("\n       !!bitree!! Creating a binary tree structure to minimize memory use.\n");  // !!bitree!! v1.5b
 
       
-      create_bitree(myID, &voxel_data, voxel_mat_dens, &bitree, &bitree_bytes, &voxel_geometry_LowRes, &voxel_geometry_LowRes_bytes);     //!!bitree!! v1.5b
+      // create_bitree(myID, &voxel_data, voxel_mat_dens, &bitree, &bitree_bytes, &voxel_geometry_LowRes, &voxel_geometry_LowRes_bytes);     //!!bitree!! v1.5b
       
       MAIN_THREAD printf("       >> RAM memory allocation: original voxelized geometry = %f MBytes; low resolution voxelized geometry = %f MBytes;\n", voxel_mat_dens_bytes/(1024.f*1024.f), voxel_geometry_LowRes_bytes/(1024.f*1024.f));
       MAIN_THREAD printf("                                 binary tree = %f MBytes; image vector = %f MBytes; data structures = %f Mbytes\n", bitree_bytes/(1024.f*1024.f), image_bytes/(1024.f*1024.f), (sizeof(struct voxel_struct)+sizeof(struct source_struct)+sizeof(struct detector_struct)+sizeof(struct linear_interp)+2*mfp_table_bytes+sizeof(struct rayleigh_struct)+sizeof(struct compton_struct))/(1024.f*1024.f));
       MAIN_THREAD printf("                                 (reduction in memory use with bitree: [low res voxels + binary tree]-[high res voxels] = %f MBytes = %.3f%%)\n", (voxel_geometry_LowRes_bytes+bitree_bytes-voxel_mat_dens_bytes)/(1024.f*1024.f), 100.f*(voxel_geometry_LowRes_bytes+bitree_bytes-voxel_mat_dens_bytes)/voxel_mat_dens_bytes);
       
       // -- Replace the high resolution version of the geometry by the low resolution version:       !!DeBuG!! voxel dose tally can't be used now!!    
-      free(voxel_mat_dens);                                  //!!bitree!! v1.5b
-      voxel_mat_dens = voxel_geometry_LowRes;                //!!bitree!! v1.5b
-      voxel_mat_dens_bytes = voxel_geometry_LowRes_bytes;    //!!bitree!! v1.5b
+      // free(voxel_mat_dens);                                  //!!bitree!! v1.5b
+      // voxel_mat_dens = voxel_geometry_LowRes;                //!!bitree!! v1.5b
+      // voxel_mat_dens_bytes = voxel_geometry_LowRes_bytes;    //!!bitree!! v1.5b
     }
     else
     {
@@ -686,37 +696,39 @@ int main(int argc, char **argv)
   fflush(stdout);
   
   // !!bitree!! If the binary tree is used, broadcast the tree data and all auxiliary data from main to every other thread:
-  #ifdef USING_MPI
-  if (numprocs>1 && (voxel_data.num_voxels_coarse.x)!=0)
-  {
-    MPI_Barrier(MPI_COMM_WORLD);  // Synchronize MPI threads
+  // #ifdef USING_MPI
+  // if (numprocs>1 && (voxel_data.num_voxels_coarse.x)!=0)
+  // {
+  //   MPI_Barrier(MPI_COMM_WORLD);  // Synchronize MPI threads
     
-    // Send all the geometric adata that has been read or changed by root node:    
-    MPI_Bcast(&voxel_data.num_voxels.x, 1, MPI_INT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.num_voxels.y, 1, MPI_INT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.num_voxels.z, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&voxel_data.size_bbox.x, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.size_bbox.y, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.size_bbox.z, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  //   // Send all the geometric adata that has been read or changed by root node:    
+  //   MPI_Bcast(&voxel_data.num_voxels.x, 1, MPI_INT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.num_voxels.y, 1, MPI_INT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.num_voxels.z, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  //   MPI_Bcast(&voxel_data.size_bbox.x, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.size_bbox.y, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.size_bbox.z, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
     
-    voxel_data.voxel_size_HiRes.x = voxel_data.voxel_size.x; voxel_data.voxel_size_HiRes.y = voxel_data.voxel_size.y; voxel_data.voxel_size_HiRes.z = voxel_data.voxel_size.z; // Save the original high resolution voxel size
-    MPI_Bcast(&voxel_data.voxel_size.x, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.voxel_size.y, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.voxel_size.z, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-    voxel_data.inv_voxel_size.x = 1.0/voxel_data.voxel_size.x; voxel_data.inv_voxel_size.y = 1.0/voxel_data.voxel_size.y; voxel_data.inv_voxel_size.z = 1.0/voxel_data.voxel_size.z; 
+  //   voxel_data.voxel_size_HiRes.x = voxel_data.voxel_size.x; voxel_data.voxel_size_HiRes.y = voxel_data.voxel_size.y; voxel_data.voxel_size_HiRes.z = voxel_data.voxel_size.z; // Save the original high resolution voxel size
+  //   MPI_Bcast(&voxel_data.voxel_size.x, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.voxel_size.y, 1, MPI_FLOAT, 0, MPI_COMM_WORLD); MPI_Bcast(&voxel_data.voxel_size.z, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  //   voxel_data.inv_voxel_size.x = 1.0/voxel_data.voxel_size.x; voxel_data.inv_voxel_size.y = 1.0/voxel_data.voxel_size.y; voxel_data.inv_voxel_size.z = 1.0/voxel_data.voxel_size.z; 
     
-    MPI_Bcast(density_max, MAX_MATERIALS, MPI_FLOAT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(mass_materials, MAX_MATERIALS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  //   MPI_Bcast(density_max, MAX_MATERIALS, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  //   MPI_Bcast(mass_materials, MAX_MATERIALS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
     
-    // Allocate memory (except root) and transmit voxel+binary tree links data:
-    MPI_Bcast(&voxel_geometry_LowRes_bytes, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&bitree_bytes, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    if(0!=myID)
-    {
-      voxel_mat_dens_bytes = voxel_geometry_LowRes_bytes;
-      voxel_mat_dens = (int*) malloc(voxel_mat_dens_bytes);   // Allocate voxels (low resolution)
-      bitree = (char*) malloc(bitree_bytes);                  // Allocate binary tree elements
-    }
-    MPI_Bcast(voxel_mat_dens, ((unsigned long long int)voxel_data.num_voxels.x)*(voxel_data.num_voxels.y*voxel_data.num_voxels.z), MPI_INT, 0, MPI_COMM_WORLD);  
-    MPI_Bcast(bitree, bitree_bytes, MPI_CHAR, 0, MPI_COMM_WORLD);  
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  #endif
+  //   // Allocate memory (except root) and transmit voxel+binary tree links data:
+  //   MPI_Bcast(&voxel_geometry_LowRes_bytes, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+  //   MPI_Bcast(&bitree_bytes, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+  //   if(0!=myID)
+  //   {
+  //     voxel_mat_dens_bytes = voxel_geometry_LowRes_bytes;
+      
+  //     voxel_mat_dens = (float*) malloc(voxel_mat_dens_bytes);   // Allocate voxels (low resolution)
+  //     // voxel_mat_dens = (int*) malloc(voxel_mat_dens_bytes);   // Allocate voxels (low resolution)
+  //     bitree = (char*) malloc(bitree_bytes);                  // Allocate binary tree elements
+  //   }
+  //   MPI_Bcast(voxel_mat_dens, ((unsigned long long int)voxel_data.num_voxels.x)*(voxel_data.num_voxels.y*voxel_data.num_voxels.z), MPI_INT, 0, MPI_COMM_WORLD);  
+  //   MPI_Bcast(bitree, bitree_bytes, MPI_CHAR, 0, MPI_COMM_WORLD);  
+  //   MPI_Barrier(MPI_COMM_WORLD);
+  // }
+  // #endif
   
   
   // *** Read the material mean free paths and set the interaction table in a "linear_interp" structure:
@@ -745,7 +757,7 @@ int main(int argc, char **argv)
         //          *mfp_Woodcock_table_device = NULL;
         //   char *voxel_mat_dens_device       = NULL;      //!!FixedDensity_DBT!! Allocate material vector as char
         
-  int *voxel_mat_dens_device = NULL;      //!!bitree!! v1.5 --> using an integer value to be able to store both the material number (positive) or pointers to the binary tree branches (negative)
+  float2 *voxel_mat_dens_device = NULL;      //!!bitree!! v1.5 --> using an integer value to be able to store both the material number (positive) or pointers to the binary tree branches (negative)
   char *bitree_device = NULL;             //!!bitree!! v1.5b
   
   float2 *mfp_Woodcock_table_device = NULL;      //!!FixedDensity_DBT!!
@@ -2011,20 +2023,22 @@ void read_input(int argc, char** argv, int myID, unsigned long long int* total_h
   new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);
     sscanf(new_line, "%f %f %f", &voxel_data->offset.x, &voxel_data->offset.y, &voxel_data->offset.z);   // OFFSET OF THE VOXEL GEOMETRY (DEFAULT ORIGIN AT LOWER BACK CORNER) [cm]     !!DBTv1.4!!
 
-  new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);
-    sscanf(new_line, "%d %d %d", &voxel_data->num_voxels.x, &voxel_data->num_voxels.y, &voxel_data->num_voxels.z);   // NUMBER OF VOXELS: INPUT A "0" TO READ ASCII FORMAT WITH HEADER SECTION, RAW VOXELS WILL BE READ OTHERWISE     !!DBTv1.4!!
-    if (voxel_data->num_voxels.x<1 || voxel_data->num_voxels.y<1 || voxel_data->num_voxels.z<1)
-      voxel_data->num_voxels.x = -1;  // Indicate to read ASCII format geometry: geometric parameters will be read from the header file      !!DBTv1.4!!
+  // voxel_data->num_voxels.x = -1;
+
+  // new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);
+  //   sscanf(new_line, "%d %d %d", &voxel_data->num_voxels.x, &voxel_data->num_voxels.y, &voxel_data->num_voxels.z);   // NUMBER OF VOXELS: INPUT A "0" TO READ ASCII FORMAT WITH HEADER SECTION, RAW VOXELS WILL BE READ OTHERWISE     !!DBTv1.4!!
+  //   if (voxel_data->num_voxels.x<1 || voxel_data->num_voxels.y<1 || voxel_data->num_voxels.z<1)
+  //     voxel_data->num_voxels.x = -1;  // Indicate to read ASCII format geometry: geometric parameters will be read from the header file      !!DBTv1.4!!
   
-  new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);
-    sscanf(new_line, "%f %f %f", &voxel_data->voxel_size.x, &voxel_data->voxel_size.y, &voxel_data->voxel_size.z);   // VOXEL SIZES [cm]     !!DBTv1.4!!
-    voxel_data->inv_voxel_size.x = 1.0f/voxel_data->voxel_size.x;
-    voxel_data->inv_voxel_size.y = 1.0f/voxel_data->voxel_size.y;
-    voxel_data->inv_voxel_size.z = 1.0f/voxel_data->voxel_size.z;
+  // new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);
+  //   sscanf(new_line, "%f %f %f", &voxel_data->voxel_size.x, &voxel_data->voxel_size.y, &voxel_data->voxel_size.z);   // VOXEL SIZES [cm]     !!DBTv1.4!!
+  //   voxel_data->inv_voxel_size.x = 1.0f/voxel_data->voxel_size.x;
+  //   voxel_data->inv_voxel_size.y = 1.0f/voxel_data->voxel_size.y;
+  //   voxel_data->inv_voxel_size.z = 1.0f/voxel_data->voxel_size.z;
 
   int split_x=-1, split_y=-1, split_z=-1;
-  new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);                         //!!bitree!! v1.5b
-    sscanf(new_line, "%d %d %d", &split_x, &split_y, &split_z);   // SIZE OF LOW RESOLUTION VOXELS THAT WILL BE DESCRIBED BY A BINARY TREE, GIVEN AS POWERS OF TWO (eg, 2 2 3 = 2^2x2^2x2^3 = 128 input voxels per low res voxel; 0 0 0 disables tree)    //!!bitre!! v1.5b
+  // new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);                         //!!bitree!! v1.5b
+  //   sscanf(new_line, "%d %d %d", &split_x, &split_y, &split_z);   // SIZE OF LOW RESOLUTION VOXELS THAT WILL BE DESCRIBED BY A BINARY TREE, GIVEN AS POWERS OF TWO (eg, 2 2 3 = 2^2x2^2x2^3 = 128 input voxels per low res voxel; 0 0 0 disables tree)    //!!bitre!! v1.5b
 
   if( (split_x+split_y+split_z)==0 || split_x<0 || split_y<0 || split_z<0)
   {
@@ -2055,129 +2069,70 @@ void read_input(int argc, char** argv, int myID, unsigned long long int* total_h
 
   int i, flag_voxelId=0, flag_densityId=0;
   
-  for (i=0; i<256; i++)
-    voxelId[i]=-1;           // Init voxel-to-material conversion table in global variable
+  // for (i=0; i<256; i++)
+  //   voxelId[i]=-1;           // Init voxel-to-material conversion table in global variable
+  
   
   for (i=0; i<MAX_MATERIALS; i++)
   {
-    density_LUT[i]=-1.0f;    // Init material density global variable    
-    new_line_ptr = fgets_trimmed(new_line, 400, file_ptr);
+    new_line_ptr = fgets_trimmed(new_line, 250, file_ptr);
     if (new_line_ptr==NULL)
       file_name_materials[i][0]='\n';   // The input file is allowed to finish without defining all the materials
     else
-    {
-    
-      // -- Read material file name:
-      trim_name(new_line, file_name_materials[i]);    
-
-      
-      // !!inputDensity!! Allowing users to overwrite the nominal material density in the input material file and list the voxel numbers corresponding to the material in the voxel file (conversion table):
-    
-      // -- Read the input material density (if given):
-      char densityStr[]="density=";
-      char *pch = strstr(new_line,densityStr);
-      if (pch!=NULL)
-      {
-        pch += strlen(densityStr);    // Skip label characters
-        int dummy = sscanf(pch, "%f", &density_LUT[i]);
-        
-        if (density_LUT[i]>0.0f)
-          flag_densityId++;   // Mark that a density has been input.
-        
-        
-//         if (dummy>0 && density_LUT[i]>0.0f)
-//             printf("\tdensity=%f\n",density_LUT[i]);
-//           else
-//             printf("\tNo density given for material %d (using nominal value from file).\n", i);
-      }
-//       else
-//         printf("\tNo density given for material %d (using nominal value from file).\n", i);
-      
-
-      // -- Read the voxel ID numbers for the current material (if given):
-      char voxelStr[]="voxelId=";
-        //strcpy (new_line_tmp,new_line);   // Using a copy of the new line because strtok will insert end-of-string characters between tokens.   
-      pch = strstr(new_line,voxelStr);
-      if (pch!=NULL)
-      {
-        pch += strlen(voxelStr);    // Skip label characters
-        pch = strtok(pch,",");      // Get first token before comma (or single token at current location if no comma)
-        while (pch != NULL)
-        {
-          int id=-1;
-          int dummy = sscanf(pch, "%d", &id);
-          if (dummy>0 && id>=0 && id<256)
-          {
-            voxelId[id]=i;    // Assign current material to item number id in voxel-to-material conversion table (valid id from 0 to 255; 1 byte).
-            flag_voxelId++;   // Mark that at voxelId has been used.
-//             MAIN_THREAD printf("\tid=%d\n",id);
-          }
-          else if (id<-1 || id>255)
-          {
-            MAIN_THREAD printf("\n\n   !!read_input ERROR!! Input voxelID values must be between 0 and 255 (unsigned char)! Value read for material %d: %d\n\n",i,id);
-            exit(-2);
-          }
-//           else
-//             MAIN_THREAD printf("\tNo voxelID given for this material.\n");
-            
-          pch = strtok (NULL, ",");   // Get following tokens after comma
-        }
-      }
-//       else
-//         MAIN_THREAD printf("\tNo voxelID given for this material.\n");
-    
-    }  
+      trim_name(new_line, file_name_materials[i]);
   }
+
+  
   
   
   // -- Use the VICTRE default voxel conversion table if no voxelId labels were input (keeping compatibility with older VICTRE input files):
-  if (0==flag_voxelId)
-  {
-    voxelId[  0]= 0;  // ==Air
-    voxelId[  1]= 1;  // ==fat
-    voxelId[  2]= 2;  // ==skin
-    voxelId[ 29]= 3;  // ==glandular
-    voxelId[ 33]= 4;  // ==nipple
-    voxelId[ 40]= 6;  // ==muscle
-    voxelId[ 50]=10;  // ==Compression Paddle
-    voxelId[ 65]=13;  // ==Tungsten (bar patterns, MTF edge)
-    voxelId[ 66]=14;  // ==a-Se (bar patterns)
-    voxelId[ 88]= 5;  // ==ligament(88)
-    voxelId[ 95]= 9;  // ==terminal duct lobular unit(95)
-    voxelId[125]= 7;  // ==duct(125)
-    voxelId[150]= 8;  // ==artery(150)
-    voxelId[200]=11;  // ==Mass/Signal
-    voxelId[225]= 8;  // ==vein(225)
-    voxelId[250]=12;  // ==Microcalcification
+  // if (0==flag_voxelId)
+  // {
+  //   voxelId[  0]= 0;  // ==Air
+  //   voxelId[  1]= 1;  // ==fat
+  //   voxelId[  2]= 2;  // ==skin
+  //   voxelId[ 29]= 3;  // ==glandular
+  //   voxelId[ 33]= 4;  // ==nipple
+  //   voxelId[ 40]= 6;  // ==muscle
+  //   voxelId[ 50]=10;  // ==Compression Paddle
+  //   voxelId[ 65]=13;  // ==Tungsten (bar patterns, MTF edge)
+  //   voxelId[ 66]=14;  // ==a-Se (bar patterns)
+  //   voxelId[ 88]= 5;  // ==ligament(88)
+  //   voxelId[ 95]= 9;  // ==terminal duct lobular unit(95)
+  //   voxelId[125]= 7;  // ==duct(125)
+  //   voxelId[150]= 8;  // ==artery(150)
+  //   voxelId[200]=11;  // ==Mass/Signal
+  //   voxelId[225]= 8;  // ==vein(225)
+  //   voxelId[250]=12;  // ==Microcalcification
     
-    // -- Use the VICTRE default densities if no voxelId and densities were given in the input file:
-    if (0==flag_densityId)
-    {
-      density_LUT[ 0]=0.00120f;
-      density_LUT[ 1]=0.920f;
-      density_LUT[ 2]=1.090f;
-      density_LUT[ 3]=1.035f;
-      density_LUT[ 4]=1.090f;
-      density_LUT[ 5]=1.120f;
-      density_LUT[ 6]=1.050f;
-      density_LUT[ 7]=1.050f;
-      density_LUT[ 8]=1.000f;
-      density_LUT[ 9]=1.050f;
-      density_LUT[10]=1.060f;
-      density_LUT[11]=1.060f;
-      density_LUT[12]=1.781f;
-      density_LUT[13]=19.30f;
-      density_LUT[14]=4.50f;
-    }
-  }
+  //   // -- Use the VICTRE default densities if no voxelId and densities were given in the input file:
+  //   if (0==flag_densityId)
+  //   {
+  //     density_LUT[ 0]=0.00120f;
+  //     density_LUT[ 1]=0.920f;
+  //     density_LUT[ 2]=1.090f;
+  //     density_LUT[ 3]=1.035f;
+  //     density_LUT[ 4]=1.090f;
+  //     density_LUT[ 5]=1.120f;
+  //     density_LUT[ 6]=1.050f;
+  //     density_LUT[ 7]=1.050f;
+  //     density_LUT[ 8]=1.000f;
+  //     density_LUT[ 9]=1.050f;
+  //     density_LUT[10]=1.060f;
+  //     density_LUT[11]=1.060f;
+  //     density_LUT[12]=1.781f;
+  //     density_LUT[13]=19.30f;
+  //     density_LUT[14]=4.50f;
+  //   }
+  // }
 
   // Report the input (or default) conversion table:
-  MAIN_THREAD printf("       Voxel value to Monte Carlo material number conversion table (material number corresponds to order in input file):\n");
-  for (i=0; i<256; i++)
-  {
-    if (voxelId[i]>=0)
-      MAIN_THREAD printf("\t\tvoxelId = %d  -->  Material = %d\n", i, voxelId[i]+1);
-  }
+  // MAIN_THREAD printf("       Voxel value to Monte Carlo material number conversion table (material number corresponds to order in input file):\n");
+  // for (i=0; i<256; i++)
+  // {
+  //   if (voxelId[i]>=0)
+  //     MAIN_THREAD printf("\t\tvoxelId = %d  -->  Material = %d\n", i, voxelId[i]+1);
+  // }
   MAIN_THREAD printf("\n"); 
   MAIN_THREAD fflush(stdout);  
   
@@ -2358,8 +2313,8 @@ char* fgets_trimmed(char* trimmed_line, int num, FILE* file_ptr)
 //!       @param[out] voxel_mat_dens_ptr   Pointer to the vector with the voxel materials and densities.
 //!       @param[in] dose_ROI_x/y/z_max   Size of the dose ROI: can not be larger than the total number of voxels in the geometry.
 ////////////////////////////////////////////////////////////////////////////////
-// void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, float2** voxel_mat_dens_ptr, unsigned int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max)
-void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, int** voxel_mat_dens_ptr, long long int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max)    //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
+void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, float2** voxel_mat_dens_ptr, unsigned int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max)
+// void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, int** voxel_mat_dens_ptr, long long int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max)    //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
 {
   char new_line[250];
   char *new_line_ptr = NULL;  
@@ -2445,10 +2400,10 @@ void load_voxels(int myID, char* file_name_voxels, float* density_max, struct vo
   voxel_data->inv_voxel_size.z = 1.0f/(voxel_data->voxel_size.z);
   
   // -- Allocate the voxel matrix and store array size:
-//   *voxel_mat_dens_bytes = sizeof(float2)*(voxel_data->num_voxels.x)*(voxel_data->num_voxels.y)*(voxel_data->num_voxels.z);
-//   *voxel_mat_dens_ptr    = (float2*) malloc(*voxel_mat_dens_bytes);
-  *voxel_mat_dens_bytes = sizeof(int)*(voxel_data->num_voxels.x)*(voxel_data->num_voxels.y)*(voxel_data->num_voxels.z);   //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
-  *voxel_mat_dens_ptr   = (int*) malloc(*voxel_mat_dens_bytes);                                                           //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
+  *voxel_mat_dens_bytes = sizeof(float2)*(voxel_data->num_voxels.x)*(voxel_data->num_voxels.y)*(voxel_data->num_voxels.z);
+  *voxel_mat_dens_ptr    = (float2*) malloc(*voxel_mat_dens_bytes);
+  // *voxel_mat_dens_bytes = sizeof(int)*(voxel_data->num_voxels.x)*(voxel_data->num_voxels.y)*(voxel_data->num_voxels.z);   //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
+  // *voxel_mat_dens_ptr   = (int*) malloc(*voxel_mat_dens_bytes);                                                           //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
   
   if (*voxel_mat_dens_ptr==NULL)
   {
@@ -2456,8 +2411,8 @@ void load_voxels(int myID, char* file_name_voxels, float* density_max, struct vo
     exit(-2);
   }
 
-  MAIN_THREAD printf("\n\n!!WARNING!! The conversion table assigning a fixed density to each material (global memory array \"density_LUT\") has to be given in the input file or the hardcoded default from VICTRE is used.\n");
-  MAIN_THREAD printf(    "            The densities given in the ASCII input .vox file are not used in the actual simulation!\n\n");  //!!FixedDensity_DBT!!    
+  // MAIN_THREAD printf("\n\n!!WARNING!! The conversion table assigning a fixed density to each material (global memory array \"density_LUT\") has to be given in the input file or the hardcoded default from VICTRE is used.\n");
+  // MAIN_THREAD printf(    "            The densities given in the ASCII input .vox file are not used in the actual simulation!\n\n");  //!!FixedDensity_DBT!!    
   MAIN_THREAD printf("    -- Initializing the voxel material vector (%f Mbytes). \n\n", (*voxel_mat_dens_bytes)/(1024.f*1024.f));
   MAIN_THREAD fflush(stdout);
   
@@ -2465,9 +2420,8 @@ void load_voxels(int myID, char* file_name_voxels, float* density_max, struct vo
   //   MAIN_THREAD printf("       Reading the voxel densities... ");
   int i, j, k, read_lines=0, dummy_material, read_items = -99;
   float dummy_density;
-//   float2 *voxels_ptr = *voxel_mat_dens_ptr;
-  int *voxels_ptr = *voxel_mat_dens_ptr;       //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
-
+  float2 *voxels_ptr = *voxel_mat_dens_ptr;
+  
   for (k=0; k<MAX_MATERIALS; k++)
     density_max[k] = -999.0f;   // Init array with an impossible low density value
   
@@ -2509,10 +2463,10 @@ void load_voxels(int myID, char* file_name_voxels, float* density_max, struct vo
         if (dummy_density > density_max[dummy_material-1])
           density_max[dummy_material-1] = dummy_density;  // Store maximum density for each material
 
-//         (*voxels_ptr).x = (float)(dummy_material)+0.0001f;  // Assign material value as float (the integer value will be recovered by truncation)
-//         (*voxels_ptr).y = dummy_density;      // Assign density values
+        (*voxels_ptr).x = (float)(dummy_material)+0.0001f;  // Assign material value as float (the integer value will be recovered by truncation)
+        (*voxels_ptr).y = dummy_density;      // Assign density values
 
-        (*voxels_ptr) = (int)(dummy_material-1);  // Assign material value as char, starting at 0   //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"; density taken from look up table
+        // (*voxels_ptr) = (int)(dummy_material-1);  // Assign material value as char, starting at 0   //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"; density taken from look up table
 
         voxels_ptr++;                         // Move to next voxel
 
@@ -2560,6 +2514,7 @@ void load_material(int myID, char file_name_materials[MAX_MATERIALS][250], float
   char *new_line_ptr = NULL;
   int mat, i, bin, input_num_values = 0, input_rayleigh_values = 0, input_num_shells = 0;
   double delta_e=-99999.0;
+ 
 
   // -- Init the number of shells to 0 for all materials
   for (mat=0; mat<MAX_MATERIALS; mat++)
@@ -2599,24 +2554,38 @@ void load_material(int myID, char file_name_materials[MAX_MATERIALS][250], float
     
     
     // !!inputDensity!! Using the material density given in the input file, or the nominal material density if no density input:
-    if (density_max[mat]>0.0f)
-    {
-      // Material density read from a text-based (no binary) input geometry:
-      density_LUT[mat] = density_max[mat];
+    // if (density_max[mat]>0.0f)
+    // {
+    //   // Material density read from a text-based (no binary) input geometry:
+    //   density_LUT[mat] = density_max[mat];
       
-      MAIN_THREAD printf("                Nominal density = %f g/cm^3; Density in voxels = %f g/cm^3\n", density_nominal[mat], density_max[mat]);
-    }
-    else if (density_max[mat]>-2.0f)    
-    {
-      // Material found in a binary voxel file:   
+    //   MAIN_THREAD printf("                Nominal density = %f g/cm^3; Density in voxels = %f g/cm^3\n", density_nominal[mat], density_max[mat]);
+    // }
+    // else if (density_max[mat]>-2.0f)    
+    // {
+    //   // Material found in a binary voxel file:   
       
-      // Use the nominal material density if no alternative density input by the user:
-      if (density_LUT[mat]<1.0e-20f)
-        density_LUT[mat] = density_nominal[mat];
+    //   // Use the nominal material density if no alternative density input by the user:
+    //   if (density_LUT[mat]<1.0e-20f)
+    //     density_LUT[mat] = density_nominal[mat];
         
-      density_max[mat] = density_LUT[mat];
+    //   density_max[mat] = density_LUT[mat];
       
-      MAIN_THREAD printf("                Nominal density = %f g/cm^3; Density used in voxels = %f g/cm^3\n", density_nominal[mat], density_max[mat]);
+    //   MAIN_THREAD printf("                Nominal density = %f g/cm^3; Density used in voxels = %f g/cm^3\n", density_nominal[mat], density_max[mat]);
+    // }
+    // else                       //  Material NOT found in the voxels
+    // {
+    //   MAIN_THREAD printf("                This material is not used in any voxel.\n");
+      
+    //   // Do not lose time reading the data for materials not found in the voxels, except for the first one (needed to determine the size of the input data).      
+    //   if (0 == mat)
+    //     density_max[mat] = 0.01f*density_nominal[mat];   // Assign a small but positive density; this material will not be used anyway.
+    //   else
+    //     continue;     //  Move on to next material          
+    // }
+     if (density_max[mat]>0)    //  Material found in the voxels
+    {
+      MAIN_THREAD printf("                Nominal density = %f g/cm^3; Max density in voxels = %f g/cm^3\n", density_nominal[mat], density_max[mat]);
     }
     else                       //  Material NOT found in the voxels
     {
@@ -2628,7 +2597,7 @@ void load_material(int myID, char file_name_materials[MAX_MATERIALS][250], float
       else
         continue;     //  Move on to next material          
     }
-      
+  
 
     // --For the first material, set the number of energy values and allocate table arrays:
     new_line_ptr = gzgets(file_ptr, new_line, 250);   //  !!zlib!!
@@ -2836,6 +2805,9 @@ void load_material(int myID, char file_name_materials[MAX_MATERIALS][250], float
   {
     (*mfp_Woodcock_table_ptr)[i].x = (*mfp_Woodcock_table_ptr)[i].x - (mfp_table_data->e0 + i*delta_e)*(*mfp_Woodcock_table_ptr)[i].y;
   }
+
+  // for (mat=0; mat<MAX_MATERIALS; mat++)
+  //   MAIN_THREAD printf("                %f  %f %f\n", density_LUT[mat], density_nominal[mat], density_max[mat]);
   
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -2848,8 +2820,8 @@ void load_material(int myID, char file_name_materials[MAX_MATERIALS][250], float
 ////////////////////////////////////////////////////////////////////////////////
 void init_CUDA_device( int* gpu_id, int myID, int numprocs,
       /*Variables to GPU constant memory:*/ struct voxel_struct* voxel_data, struct source_struct* source_data, struct source_energy_struct* source_energy_data, struct detector_struct* detector_data, struct linear_interp* mfp_table_data,
-//       /*Variables to GPU global memory:*/ float2* voxel_mat_dens, float2** voxel_mat_dens_device, unsigned int voxel_mat_dens_bytes,    
-      /*Variables to GPU global memory:*/ int* voxel_mat_dens, int** voxel_mat_dens_device, long long int voxel_mat_dens_bytes,        //!!FixedDensity_DBT!!
+      /*Variables to GPU global memory:*/ float2* voxel_mat_dens, float2** voxel_mat_dens_device, unsigned int voxel_mat_dens_bytes,    
+      // /*Variables to GPU global memory:*/ int* voxel_mat_dens, int** voxel_mat_dens_device, long long int voxel_mat_dens_bytes,        //!!FixedDensity_DBT!!
         char* bitree, char** bitree_device, unsigned int bitree_bytes,                                                                //!!bitree!! v1.5b
         unsigned long long int* image, unsigned long long int** image_device, int image_bytes,
         float2* mfp_Woodcock_table, float2** mfp_Woodcock_table_device, int mfp_Woodcock_table_bytes,
@@ -2917,17 +2889,17 @@ void init_CUDA_device( int* gpu_id, int myID, int numprocs,
     }
     
   
-    // [Would crash if all GPUs are detected connected to one monitor.]
+	// [Would crash if all GPUs are detected connected to one monitor.]
     //!!MC-GPU_v1.4!! Skip GPUs connected to a monitor, if more GPUs available:
-    // checkCudaErrors(cudaGetDeviceProperties(&deviceProp, *gpu_id));    
-    // if (0!=deviceProp.kernelExecTimeoutEnabled)
-    // {
-    //   if((*gpu_id)<(deviceCount-1))
-    //   {
-    //     printf("\n       ==> CUDA: GPU #%d is connected to a display and the CUDA driver would limit the kernel run time. Skipping this GPU!!\n", *gpu_id);
-    //     *gpu_id = (*gpu_id)+1;
-    //   }
-    // }
+    //checkCudaErrors(cudaGetDeviceProperties(&deviceProp, *gpu_id));    
+    //if (0!=deviceProp.kernelExecTimeoutEnabled)
+    //{
+    //  if((*gpu_id)<(deviceCount-1))
+    //  {
+    //    printf("\n       ==> CUDA: GPU #%d is connected to a display and the CUDA driver would limit the kernel run time. Skipping this GPU!!\n", *gpu_id);
+    //    *gpu_id = (*gpu_id)+1;
+    //  }
+    //}
   
        
     // Send the processor and GPU id to the following thread, unless we are the last thread:
@@ -3029,7 +3001,7 @@ void init_CUDA_device( int* gpu_id, int myID, int numprocs,
   checkCudaErrors(cudaMemcpyToSymbol(dose_ROI_z_min_CONST, dose_ROI_z_min, sizeof(short int)));
   checkCudaErrors(cudaMemcpyToSymbol(dose_ROI_z_max_CONST, dose_ROI_z_max, sizeof(short int)));
   
-  checkCudaErrors(cudaMemcpyToSymbol(density_LUT_CONST, &density_LUT, MAX_MATERIALS*sizeof(float)));   // !!inputDensity!! store density look-up table in GPU constant memory 
+  // checkCudaErrors(cudaMemcpyToSymbol(density_LUT_CONST, &density_LUT, MAX_MATERIALS*sizeof(float)));   // !!inputDensity!! store density look-up table in GPU constant memory 
 
   double total_mem = sizeof(struct voxel_struct)+sizeof(struct source_struct)+sizeof(struct detector_struct)+sizeof(struct linear_interp) + 6*sizeof(short int) + MAX_MATERIALS*sizeof(float);
   MAIN_THREAD printf("       ==> CUDA: Constant data successfully copied to the device. CONSTANT memory used: %lf kbytes (%.1lf%%)\n", total_mem/1024.0, 100.0*total_mem/deviceProp.totalConstMem);
@@ -3514,8 +3486,8 @@ int report_image(char* file_name_output, struct detector_struct* detector_data, 
 //!       @param[in] total_histories   Total number of x-rays simulated
 //!       @param[in] source_data   Data required to compute the voxel plane to report in ASCII format: Z at the level of the source, 1st projection
 ////////////////////////////////////////////////////////////////////////////////
-// int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel_struct* voxel_data, float2* voxel_mat_dens, ulonglong2* voxels_Edep, double time_total_MC_init_report, unsigned long long int total_histories, short int dose_ROI_x_min, short int dose_ROI_x_max, short int dose_ROI_y_min, short int dose_ROI_y_max, short int dose_ROI_z_min, short int dose_ROI_z_max, struct source_struct* source_data)
-int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel_struct* voxel_data, int* voxel_mat_dens, ulonglong2* voxels_Edep, double time_total_MC_init_report, unsigned long long int total_histories, short int dose_ROI_x_min, short int dose_ROI_x_max, short int dose_ROI_y_min, short int dose_ROI_y_max, short int dose_ROI_z_min, short int dose_ROI_z_max, struct source_struct* source_data)  //!!FixedDensity_DBT!! 
+int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel_struct* voxel_data, float2* voxel_mat_dens, ulonglong2* voxels_Edep, double time_total_MC_init_report, unsigned long long int total_histories, short int dose_ROI_x_min, short int dose_ROI_x_max, short int dose_ROI_y_min, short int dose_ROI_y_max, short int dose_ROI_z_min, short int dose_ROI_z_max, struct source_struct* source_data)
+// int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel_struct* voxel_data, int* voxel_mat_dens, ulonglong2* voxels_Edep, double time_total_MC_init_report, unsigned long long int total_histories, short int dose_ROI_x_min, short int dose_ROI_x_max, short int dose_ROI_y_min, short int dose_ROI_y_max, short int dose_ROI_z_min, short int dose_ROI_z_max, struct source_struct* source_data)  //!!FixedDensity_DBT!! 
 {
   printf("\n\n          *** VOXEL ROI DOSE TALLY REPORT ***\n\n");
     
@@ -3630,13 +3602,10 @@ int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel
       for(i=0; i<DX; i++)
       {
         register int voxel_geometry = (i+dose_ROI_x_min) + (j+dose_ROI_y_min)*voxel_data->num_voxels.x + (k+dose_ROI_z_min)*voxel_data->num_voxels.x*voxel_data->num_voxels.y;
-//         register double inv_voxel_mass = 1.0 / (voxel_mat_dens[voxel_geometry].y*voxel_volume);
-//         register int mat_number = (int)(voxel_mat_dens[voxel_geometry].x) - 1 ;  // Material number, starting at 0.
-//         mat_mass_ROI[mat_number]  += voxel_mat_dens[voxel_geometry].y*voxel_volume;   // Estimate mass and energy deposited in this material
+        register double inv_voxel_mass = 1.0 / (voxel_mat_dens[voxel_geometry].y*voxel_volume);
+        register int mat_number = (int)(voxel_mat_dens[voxel_geometry].x) - 1 ;  // Material number, starting at 0.
+        mat_mass_ROI[mat_number]  += voxel_mat_dens[voxel_geometry].y*voxel_volume;   // Estimate mass and energy deposited in this material
         
-        register double inv_voxel_mass = 1.0 / (density_LUT[(int)voxel_mat_dens[voxel_geometry]]*voxel_volume);       //!!FixedDensity_DBT!! Density taken from function "density_LOT"
-        register int mat_number = (int)(voxel_mat_dens[voxel_geometry]);  // Material number, starting at 0.      //!!FixedDensity_DBT!!
-        mat_mass_ROI[mat_number]  += density_LUT[(int)voxel_mat_dens[voxel_geometry]]*voxel_volume;   // Estimate mass and energy deposited in this material    //!!FixedDensity_DBT!! Density taken from function "density_LOT"
         
 
         mat_Edep[mat_number]  += (double)voxels_Edep[voxel].x;        // Using doubles to avoid overflow
