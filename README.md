@@ -156,3 +156,9 @@ Compared to [VICTRE_MCGPU](https://github.com/DIDSR/VICTRE_MCGPU/), MCGPULite_v1
   Through experiments, **I don't recommend you to use multiple GPUs if your TOTAL NUMBER OF HISTORIES is less than 1e10** because of the distribution overhead. Otherwise, I achieve a time cutdown by 66% with 1e11 histories.
 
 - The terminal outputs talk less.
+
+## Known Issues
+
+### Flat Field Simulation Bug
+
+When simulating a flat field, it is generally done by creating a phantom with the density of air everywhere, while keeping other parameters unchanged. However, in the MCGPU_v1.5b version, if photons pass through an full-air phantom, there seems to be some "strange" reaction, causing **ring-shaped noise** in the generated results. Currently, it is unclear how to fix this issue. However, it can be mitigated by adjusting the position of the X-ray source, such as "raising" the source position so that photons **do not pass through the phantom and directly hit the detector**, resulting in a flat field simulation without issues.
