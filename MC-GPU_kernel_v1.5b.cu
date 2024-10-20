@@ -131,7 +131,7 @@ __global__ void track_particles(int histories_per_thread,
                                 int* seed_input_device,                // Random seed read from global memory; secuence continued for successive projections in same GPU.   !!DBTv1.4!!
                                 unsigned long long int* image,
                                 ulonglong2* voxels_Edep,
-                                int* voxel_mat_dens,                   //!!bitree!! Using "int" to be store the index to the bitree table       //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
+                                float2* voxel_mat_dens,                   //!!bitree!! Using "int" to be store the index to the bitree table       //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2"
                                 char* bitree,                          //!!bitree!! Array with the bitrees for every non-uniform coarse voxel
                                 float2* mfp_Woodcock_table,
                                 float3* mfp_table_a,
@@ -212,7 +212,7 @@ __global__ void track_particles(int histories_per_thread,
 
       // *** Virtual interaction loop:  // New loop structure in MC-GPU_v1.3: simulate all virtual events before sampling Compton & Rayleigh: 
       
-//       float2 matdens;
+      float2 matdens;
       short3 voxel_coord;    // Variable used only by DOSE TALLY
 
       do
@@ -230,11 +230,11 @@ __global__ void track_particles(int histories_per_thread,
         if (absvox==FLAG_OUTSIDE_VOXELS)
           break;    // -- Particle escaped the voxel region! ("index" is still >0 at this moment)
           
-              //         matdens = voxel_mat_dens[absvox];     // Get the voxel material and density in a single read from global memory
-              //         material0 = (int)(matdens.x - 1);   // Set the current material by truncation, and set 1st material to value '0'.
+                      matdens = voxel_mat_dens[absvox];     // Get the voxel material and density in a single read from global memory
+                      material0 = (int)(matdens.x - 1);   // Set the current material by truncation, and set 1st material to value '0'.
 
         //!!FixedDensity_DBT!! Allocating "voxel_mat_dens" as "char" instead of "float2". Density taken from function "density_LUT". First material number == 0
-        material0 = (int)voxel_mat_dens[absvox];     // Get the voxel material and density in a single read from global memory (first material==0) 
+        // material0 = (int)voxel_mat_dens[absvox];     // Get the voxel material and density in a single read from global memory (first material==0) 
 
         if (material0<0)
         {
@@ -252,8 +252,8 @@ __global__ void track_particles(int histories_per_thread,
         
         // *** Apply Woodcock tracking:
 
-        mfp_density = mfp_Woodcock * density_LUT_CONST[material0];      //!!FixedDensity_DBT!! Density taken from constant memory array "density_LUT_CONST"; Old: mfp_density=mfp_Woodcock*matdens.y;
-        
+        // mfp_density = mfp_Woodcock * density_LUT_CONST[material0];      //!!FixedDensity_DBT!! Density taken from constant memory array "density_LUT_CONST"; Old: mfp_density=mfp_Woodcock*matdens.y;
+        mfp_density=mfp_Woodcock*matdens.y;
         // -- Calculate probability of delta scattering, using the total mean free path for the current material and energy (linear interpolation):
         prob = 1.0f - mfp_density * (mfp_table_read_a.x + energy * mfp_table_read_b.x);
         randno = ranecu(&seed);    // Sample uniform PRN
