@@ -38,16 +38,11 @@ W28kVp_Rh50um_Be1mm_SiemensBoone.spec    # X-RAY ENERGY SPECTRUM FILE
 #[SECTION VOXELIZED GEOMETRY FILE v.2017-07-26]
 /mnt/no4/huangwenhui/MCGPU/water.vox    # VOXEL GEOMETRY FILE (penEasy 2008 format; .gz accepted)
  0.0    0.0    0.0              # OFFSET OF THE VOXEL GEOMETRY (DEFAULT ORIGIN AT LOWER BACK CORNER) [cm]
- -1280   -1950   -940              # NUMBER OF VOXELS: INPUT A 0 TO READ ASCII FORMAT WITH HEADER SECTION, RAW VOXELS WILL BE READ OTHERWISE
- -0.0050 -0.0050 -0.0050           # VOXEL SIZES [cm]
- -1 -1 -1                          # SIZE OF LOW RESOLUTION VOXELS THAT WILL BE DESCRIBED BY A BINARY TREE, GIVEN AS POWERS OF TWO (eg, 2 2 3 = 2^2x2^2x2^3 = 128 input voxels per low res voxel; 0 0 0 disables tree)
  
 #[SECTION MATERIAL FILE LIST v.2020-03-03]   
-#  -- Input material file names first, then material density after keyword 'density=' (optional if using nominal density), then comma-separated list of voxel ID numbers after keyword 'voxelID=' (empty if material not used).
-/home/kanshengqi/software/MCGPULite/material/air__5-120keV.mcgpu.gz                  density=0.0012   voxelId=0         #  1st MATERIAL FILE (.gz accepted)
-/home/kanshengqi/software/MCGPULite/material/water__5-120keV.mcgpu.gz              density=1    voxelId=1                #  2nd MATERIAL FILE
-/home/kanshengqi/software/MCGPULite/material/adipose__5-120keV.mcgpu               density=0.920    voxelId=5,10    #  3rd MATERIAL FILE
-/home/kanshengqi/software/MCGPULite/material/blood__5-120keV.mcgpu                                                                         #  4th MATERIAL FILE
+/home/kanshengqi/software/MCGPULite/material/air__5-120keV.mcgpu.gz                         #  1st MATERIAL FILE (.gz accepted)
+/home/kanshengqi/software/MCGPULite/material/water__5-120keV.mcgpu.gz                             #  2nd MATERIAL FILE
+                                              
  
 # >>>> END INPUT FILE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
