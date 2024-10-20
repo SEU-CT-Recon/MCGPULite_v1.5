@@ -262,13 +262,14 @@ rayleigh_struct
 //// *** HOST FUNCTIONS *** ////
 
 void read_input(int argc, char** argv, int myID, unsigned long long int* total_histories, int* gpu_id, int* seed_input, int* num_threads_per_block, int* histories_per_thread, struct detector_struct* detector_data, unsigned long long int** image_ptr, int* image_bytes, struct source_struct* source_data, struct source_energy_struct* source_energy_data, struct voxel_struct* voxel_data, char* file_name_voxels, char file_name_materials[MAX_MATERIALS][250], char* file_name_output, char* file_name_espc, int* num_projections, ulonglong2** voxels_Edep_ptr, int* voxels_Edep_bytes, char* file_dose_output, short int* dose_ROI_x_min, short int* dose_ROI_x_max, short int* dose_ROI_y_min, short int* dose_ROI_y_max, short int* dose_ROI_z_min, short int* dose_ROI_z_max, double* SRotAxisD, double* translation_helical, int* flag_material_dose, bool* flag_simulateMammoAfterDBT, bool* flag_detectorFixed);
-void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, int** voxel_mat_dens_ptr, long long int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max);
+void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, float2** voxel_mat_dens_ptr, unsigned int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max);
+// void load_voxels(int myID, char* file_name_voxels, float* density_max, struct voxel_struct* voxel_data, int** voxel_mat_dens_ptr, long long int* voxel_mat_dens_bytes, short int* dose_ROI_x_max, short int* dose_ROI_y_max, short int* dose_ROI_z_max);
 void load_material(int myID, char file_name_materials[MAX_MATERIALS][250], float* density_max, float* density_nominal, struct linear_interp* mfp_table_data, float2** mfp_Woodcock_table, int* mfp_Woodcock_table_bytes, float3** mfp_table_a_ptr, float3** mfp_table_b_ptr, int* mfp_table_bytes, struct rayleigh_struct *rayleigh_table_ptr, struct compton_struct *compton_table_ptr);
 void trim_name(char* input_line, char* file_name);
 char* fgets_trimmed(char* trimmed_line, int num, FILE* file_ptr);
 int report_image(char* file_name_output, struct detector_struct* detector_data, struct source_struct* source_data, float mean_energy_spectrum, unsigned long long int* image, double time_elapsed, unsigned long long int total_histories, int current_projection, int num_projections, int myID, int numprocs, double current_angle, int* seed_input);
 void set_CT_trajectory(int myID, int num_projections, struct source_struct* source_data, struct detector_struct* detector_data, double translation_helical, bool flag_detectorFixed);
-int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel_struct* voxel_data, int* voxel_mat_dens, ulonglong2* voxels_Edep, double time_elapsed_total, unsigned long long int total_histories, short int dose_ROI_x_min, short int dose_ROI_x_max, short int dose_ROI_y_min, short int dose_ROI_y_max, short int dose_ROI_z_min, short int dose_ROI_z_max, struct source_struct* source_data);
+int report_voxels_dose(char* file_dose_output, int num_projections, struct voxel_struct* voxel_data, float2* voxel_mat_dens, ulonglong2* voxels_Edep, double time_elapsed_total, unsigned long long int total_histories, short int dose_ROI_x_min, short int dose_ROI_x_max, short int dose_ROI_y_min, short int dose_ROI_y_max, short int dose_ROI_z_min, short int dose_ROI_z_max, struct source_struct* source_data);
 void init_energy_spectrum(char* file_name_espc, struct source_energy_struct* source_energy_data, float *mean_energy_spectrum);
 void update_seed_PRNG(int batch_number, unsigned long long int total_histories, int* seed);
 void IRND0(float *W, float *F, short int *K, int N);
@@ -281,7 +282,8 @@ int seeki_walker(float *cutoff, short int *alias, float randno, int n);   // (Th
 int guestimate_GPU_performance(int gpu_id);
 void init_CUDA_device( int* gpu_id, int myID, int numprocs,
       /*Variables to GPU constant memory:*/ struct voxel_struct* voxel_data, struct source_struct* source_data, struct source_energy_struct* source_energy_data, struct detector_struct* detector_data, struct linear_interp* mfp_table_data,
-      /*Variables to GPU global memory:*/ int* voxel_mat_dens, int** voxel_mat_dens_device, long long int voxel_mat_dens_bytes,
+      // /*Variables to GPU global memory:*/ int* voxel_mat_dens, int** voxel_mat_dens_device, long long int voxel_mat_dens_bytes,
+      /*Variables to GPU global memory:*/ float2* voxel_mat_dens, float2** voxel_mat_dens_device, unsigned int voxel_mat_dens_bytes,
         char* bitree, char** bitree_device, unsigned int bitree_bytes,
         unsigned long long int* image, unsigned long long int** image_device, int image_bytes,
         float2* mfp_Woodcock_table, float2** mfp_Woodcock_table_device, int mfp_Woodcock_table_bytes,
@@ -315,7 +317,7 @@ __constant__ struct source_energy_struct source_energy_data_CONST;
 
 __global__ void init_image_array_GPU(unsigned long long int* image, int pixels_per_image);
 __global__ void init_dose_array_GPU(ulonglong2* voxels_Edep, int num_voxels_dose);
-__global__ void track_particles(int histories_per_thread, short int num_p, int* seed_input_device, unsigned long long int* image, ulonglong2* voxels_Edep, int* voxel_mat_dens, char* bitree, float2* mfp_Woodcock_table, float3* mfp_table_a, float3* mfp_table_b, struct rayleigh_struct* rayleigh_table, struct compton_struct* compton_table, struct detector_struct* detector_data_array, struct source_struct* source_data_array, ulonglong2* materials_dose);
+__global__ void track_particles(int histories_per_thread, short int num_p, int* seed_input_device, unsigned long long int* image, ulonglong2* voxels_Edep, float2* voxel_mat_dens, char* bitree, float2* mfp_Woodcock_table, float3* mfp_table_a, float3* mfp_table_b, struct rayleigh_struct* rayleigh_table, struct compton_struct* compton_table, struct detector_struct* detector_data_array, struct source_struct* source_data_array, ulonglong2* materials_dose);
 
 
 //// *** DEVICE FUNCTIONS *** ////
