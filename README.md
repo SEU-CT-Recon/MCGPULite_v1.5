@@ -1,5 +1,10 @@
 # MCGPULite_v1.5
-A Lightweight version of [VICTRE_MCGPU](https://github.com/DIDSR/VICTRE_MCGPU/) (A GPU-Accelerated Monte Carlo X-Ray Transport Simulation Tool).
+A Lightweight version of [VICTRE_MCGPU](https://github.com/DIDSR/VICTRE_MCGPU/) (A GPU-Accelerated Monte Carlo X-Ray Transport Simulation Tool), and **it is only allowed to run on Linux systems**.
+
+Other version entries:
+
+- [MCGPULite](https://github.com/SEU-CT-Recon/MCGPULite): A lightweight version of MCGPU_v1.3, which is only allowed to run on Linux systems.
+- [MCGPU-for-MATLAB](https://github.com/SEU-CT-Recon/MCGPU-for-MATLAB): The MATLAB interface version of MCGPU_v1.3, which can run directly on Windows.
 
 ## MCGPULite_v1.5 vs MCGPULite
 
